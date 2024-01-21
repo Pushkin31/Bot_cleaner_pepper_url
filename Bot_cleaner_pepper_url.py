@@ -1,6 +1,3 @@
-# Bot_cleaner_pepper_url - это бот для конвертации ссылки pepper, которую получаем из "поделиться" в приложении.
-# https://github.com/Pushkin31/Bot_cleaner_pepper_url
-
 import re
 import sqlite3
 import atexit
@@ -48,6 +45,7 @@ async def start_command(message: types.Message):
 async def help_command(message: types.Message):
     await message.reply("Этот бот помогает решить проблему с отправкой ссылок из приложения Pepper и конвертировать их в ссылку, которая откроется у любого человека, даже если нет установленного приложения.")
 
+
 @dp.message_handler(lambda message: message.text == "О боте")
 async def about_bot(message: types.Message):
     await help_command(message)
@@ -67,14 +65,13 @@ async def process_url(message: types.Message):
 
     # Получаем информацию о пользователе, на чье сообщение был данный ответ
     replied_user = message.reply_to_message.from_user if message.reply_to_message else None
-    replied_user_mention = None
 
     # Извлекаем информацию о пользователе, если она доступна
     if replied_user:
         try:
-            replied_user_mention = f"[{replied_user.first_name} {replied_user.last_name}](tg://user?id={replied_user.id})"
+            f"[{replied_user.first_name} {replied_user.last_name}](tg://user?id={replied_user.id})"
         except AttributeError:
-            replied_user_mention = f"[{replied_user.first_name or ''} {replied_user.last_name or ''}](tg://user?id={replied_user.id})"
+            f"[{replied_user.first_name or ''} {replied_user.last_name or ''}](tg://user?id={replied_user.id})"
 
     # Получаем текущее значение счетчика из базы данных
     cursor.execute('SELECT count FROM counters WHERE user_id=?', (user_id,))
