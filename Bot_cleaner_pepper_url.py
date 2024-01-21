@@ -42,11 +42,11 @@ async def start_command(message: types.Message):
     keyboard.add(types.KeyboardButton("О боте"))
 
     await message.reply("Привет! Этот бот реагирует только на сообщения, содержащие ссылки вида "
-                        "https://www.pepper.ru/share-deal-from-app/*", reply_markup=keyboard)
+                        '"https://www.pepper.ru/share-deal-from-app/*"', reply_markup=keyboard)
 
 @dp.message_handler(commands=['help'])
 async def help_command(message: types.Message):
-    await message.reply("Этот бот помогает решить проблему с отправкой ссылок из приложения Pepper и конвертировать их в ссылку, которая откроется у любого человека, даже если нет установленного приложения")
+    await message.reply("Этот бот помогает решить проблему с отправкой ссылок из приложения Pepper и конвертировать их в ссылку, которая откроется у любого человека, даже если нет установленного приложения.")
 
 @dp.message_handler(lambda message: message.text == "О боте")
 async def about_bot(message: types.Message):
