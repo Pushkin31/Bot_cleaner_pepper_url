@@ -46,12 +46,11 @@ async def start_command(message: types.Message):
 
 @dp.message_handler(commands=['help'])
 async def help_command(message: types.Message):
-    await message.reply("Этот бот помогает Аркаше решить проблему с отправкой ссылок из приложения Pepper и конвертировать их в ссылку, которая откроется у любого человека, даже если нет установленного приложения")
+    await message.reply("Этот бот помогает решить проблему с отправкой ссылок из приложения Pepper и конвертировать их в ссылку, которая откроется у любого человека, даже если нет установленного приложения")
 
 @dp.message_handler(lambda message: message.text == "О боте")
 async def about_bot(message: types.Message):
     await help_command(message)
-
 
 
 @dp.message_handler(lambda message: message.text and url_pattern.search(message.text))
@@ -59,8 +58,23 @@ async def process_url(message: types.Message):
     original_url = message.text
     cleaned_url = remove_path_from_url(original_url)
 
-    # Обработка счетчика
-    user_id = message.from_user.id
+    # Получаем информацию о пользователе, отправившем сообщение
+    user = message.from_user
+    user_id = user.id
+    user_username = user.username
+    user_first_name = user.first_name
+    user_last_name = user.last_name
+
+    # Получаем информацию о пользователе, на чье сообщение был данный ответ
+    replied_user = message.reply_to_message.from_user if message.reply_to_message else None
+    replied_user_mention = None
+
+    # Извлекаем информацию о пользователе, если она доступна
+    if replied_user:
+        try:
+            replied_user_mention = f"[{replied_user.first_name} {replied_user.last_name}](tg://user?id={replied_user.id})"
+        except AttributeError:
+            replied_user_mention = f"[{replied_user.first_name or ''} {replied_user.last_name or ''}](tg://user?id={replied_user.id})"
 
     # Получаем текущее значение счетчика из базы данных
     cursor.execute('SELECT count FROM counters WHERE user_id=?', (user_id,))
@@ -78,10 +92,17 @@ async def process_url(message: types.Message):
     cursor.execute('INSERT OR REPLACE INTO counters (user_id, count) VALUES (?, ?)', (user_id, count))
     conn.commit()
 
-    # Вывод сообщения с учетом счетчика
-    await message.reply(
-        f"{cleaned_url}\n\nЭто уже {count} неправильная ссылка с 29.12.2023",
-        parse_mode=types.ParseMode.MARKDOWN)
+    # Формируем упоминание пользователя
+    if user_username:
+        user_mention = f"[{user_username}](tg://user?id={user_id})"
+    else:
+        user_mention = f"[{user_first_name or ''} {user_last_name or ''}](tg://user?id={user_id})"
+
+    # Вывод сообщения с учетом счетчика и упоминания пользователя
+    reply_text = f"{cleaned_url}\n\n{user_mention}, это уже {count} неправильная ссылка с 29.12.2023"
+
+    # Отправляем ответное сообщение
+    await message.reply(reply_text, parse_mode=types.ParseMode.MARKDOWN)
 
     # Удаляем исходное сообщение пользователя
     await bot.delete_message(message.chat.id, message.message_id)
