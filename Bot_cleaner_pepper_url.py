@@ -4,6 +4,7 @@ import atexit
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram import executor
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 
 # Заменить 'YOUR_TOKEN' на токен бота
 TOKEN = 'YOUR_TOKEN'
@@ -29,21 +30,67 @@ def remove_path_from_url(url):
     cleaned_url = url.replace('/share-deal-from-app', '')
     return cleaned_url
 
+
 # Паттерн для поиска ссылок вида https://www.pepper.ru/share-deal-from-app/*
 url_pattern = re.compile(r'https://www\.pepper\.ru/share-deal-from-app/\d+')
 
 
 @dp.message_handler(commands=['start'])
 async def start_command(message: types.Message):
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    keyboard.add(types.KeyboardButton("О боте"))
-
     await message.reply("Привет! Этот бот реагирует только на сообщения, содержащие ссылки вида "
-                        '"https://www.pepper.ru/share-deal-from-app/*"', reply_markup=keyboard)
+                        '"https://www.pepper.ru/share-deal-from-app/*"')
+
+
+@dp.message_handler(commands=['start'])
+async def handle_start(message: types.Message):
+    await start_command(message)
+
+
+@dp.message_handler(lambda message: message.text == "Дополнительные настройки")
+async def handle_additional_settings(message: types.Message):
+    await additional_settings_menu(message)
+
+
+@dp.callback_query_handler(lambda query: query.data == 'show_about_bot')
+async def callback_show_about_bot(query: types.CallbackQuery):
+    await about_bot(query.message)
+
+
+@dp.callback_query_handler(lambda query: query.data == 'clear_counter')
+async def callback_clear_counter(query: types.CallbackQuery):
+    user_id = query.from_user.id
+
+    cursor.execute('DELETE FROM counters WHERE user_id=?', (user_id,))
+    conn.commit()
+
+    await bot.answer_callback_query(query.id, text="Счетчик успешно очищен.")
+
+
+@dp.message_handler(lambda message: message.text == "О боте")
+async def about_bot(message: types.Message):
+    await help_command(message)
+
+
+@dp.message_handler(commands=['show_about_bot'])
+async def handle_additional_settings(message: types.Message):
+    await additional_settings_menu(message)
+
+
+@dp.message_handler(commands=['clear_counter'])
+async def clear_counter_command(message: types.Message):
+    user_id = message.from_user.id
+
+    cursor.execute('DELETE FROM counters WHERE user_id=?', (user_id,))
+    conn.commit()
+
+    await message.reply("Счетчик успешно очищен.", reply_markup=ReplyKeyboardRemove())
+
 
 @dp.message_handler(commands=['help'])
 async def help_command(message: types.Message):
-    await message.reply("Этот бот помогает решить проблему с отправкой ссылок из приложения Pepper и конвертировать их в ссылку, которая откроется у любого человека, даже если нет установленного приложения.")
+    await message.reply(
+        "Этот бот помогает решить проблему с отправкой ссылок из приложения Pepper и конвертировать их в ссылку, "
+        "которая откроется у любого человека, даже если нет установленного приложения.")
 
 
 @dp.message_handler(lambda message: message.text == "О боте")
@@ -103,6 +150,24 @@ async def process_url(message: types.Message):
 
     # Удаляем исходное сообщение пользователя
     await bot.delete_message(message.chat.id, message.message_id)
+
+
+@dp.message_handler(lambda message: message.text == "Дополнительные настройки")
+async def additional_settings_menu(message: types.Message):
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(InlineKeyboardButton("Очистить счетчик", callback_data='clear_counter'))
+
+    await message.reply("Дополнительные настройки:", reply_markup=keyboard)
+
+
+@dp.message_handler(commands=['clear_counter'])
+async def clear_counter_command(message: types.Message):
+    user_id = message.from_user.id
+
+    cursor.execute('DELETE FROM counters WHERE user_id=?', (user_id,))
+    conn.commit()
+
+    await message.reply("Счетчик успешно очищен.", reply_markup=types.ReplyKeyboardRemove())
 
 
 # Закрываем подключение к базе данных при завершении программы
