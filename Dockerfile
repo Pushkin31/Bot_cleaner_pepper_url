@@ -1,5 +1,5 @@
 # Используйте официальный образ Python
-FROM python:3.10.11
+FROM python:3.10.11-alpine3.17
 
 # Устанавливаем зависимости
 RUN pip install aiogram==2.25.1
@@ -18,4 +18,4 @@ WORKDIR /Pepper_bot
 RUN chmod +x run.sh
 
 # Команда для запуска скрипта
-CMD ["./run.sh"]
+CMD ["/bin/sh", "./run.sh"]
